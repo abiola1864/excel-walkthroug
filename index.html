@@ -127,10 +127,10 @@ tbody th{background:var(--hdr);color:var(--slate);font-weight:500;width:44px;tex
 <script>
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const $=id=>document.getElementById(id);
-const data=[['0071','Musa Abubakar','Yes, serve','yes',0],['1182','Sadiya Bello','No, already served','no',2],['0345','Amina Sani','Yes, serve','yes',1],['0990','Ibrahim Yusuf','Refer to enrol','refer',0],['0512','Grace Audu','Yes, serve','yes',1]];
+const data=[['0071','Musa Abubakar','Yes, serve','yes','No'],['1182','Sadiya Bello','No, already served','no','Yes'],['0345','Amina Sani','Yes, serve','yes','No'],['0990','Ibrahim Yusuf','Refer to enrol','refer','No'],['0512','Grace Audu','Yes, serve','yes','No']];
 let busy=false,synced=false,runId=0;
 function grid(filled){let h='';for(let r=1;r<=8;r++){let a='',b='',c='',d='',cls='';
-  if(filled){if(r===1){a='Farmer ID';b='Name';c='Answer';d='Other support';cls=' class="hd"'}else if(r<=6){const x=data[r-2];a=x[0];b=x[1];c='<span class="ans '+x[3]+'">—</span>';d='<span class="ans num dv">'+x[4]+'</span>'}}
+  if(filled){if(r===1){a='Farmer ID';b='Name';c='Answer';d='Earns over ₦50,000?';cls=' class="hd"'}else if(r<=6){const x=data[r-2];a=x[0];b=x[1];c='<span class="ans '+x[3]+'">—</span>';d='<span class="ans num dv">'+x[4]+'</span>'}}
   h+='<tr'+cls+'><th>'+r+'</th><td id="'+(r===1?'hA':'')+'">'+a+'</td><td id="'+(r===1?'hB':'')+'">'+b+'</td><td id="'+(r===1?'hC':'')+'">'+c+'</td><td class="colD" id="'+(r===1?'hD':'')+'">'+d+'</td></tr>';}
   $('rows').innerHTML=h;}
 /* ---------- tour engine ---------- */
@@ -169,11 +169,13 @@ function say(n,t){}
 const add=t=>{const d=document.createElement('div');d.innerHTML=t;$('steps').appendChild(d);d.scrollIntoView({block:'nearest',behavior:'smooth'})};
 const syncMsgs=[['<b>1864 Prep</b> opens KADA’s cleaned farmer file, on KADA’s own computer','prep'],['<b>Standardised:</b> IDs kept exactly, for example 0071, never 71','prep'],['<b>Approved:</b> staff signed off every change, and every change is logged','prep'],['<b>Choose what to share:</b> the Farmer ID column is ticked','excel'],['<b>Kept private:</b> the Name column stays on this computer','excel'],['<b>Agreed question set:</b> “Is this a registered resident who has not yet been served this season?”','adA'],['<b>DeDi:</b> KADA’s public key is published, so others can check its stamp','dedi',1],['<b>Ready:</b> the adapter can now send and receive, and the records stay put','adA']];
 const askMsgs=[['<b>The officer asks once:</b> 5 Farmer IDs, one agreed question','excel'],['<b>Stamped:</b> KADA’s adapter signs the request with KADA’s private key','adA'],['<b>Sent:</b> the router at KADRIMA receives the question','router',2],['<b>DeDi lookup:</b> KADRIMA finds KADA’s public key','dedi'],['<b>Stamp verified:</b> it really came from KADA and was not changed','adB'],['<b>In transit:</b> the cache holds the message briefly','cache'],['<b>Register read in place:</b> each ID is checked against KADRIMA’s register','conn'],['<b>Answers stamped:</b> KADRIMA signs each answer with its own key','adB'],['<b>Answers returned:</b> only the agreed answer travels, never the record','excel',-1],['<b>Logged:</b> both agencies keep a record of the exchange','excel']];
-async function sync(){if(busy)return;if(waiter){const w=waiter;waiter=null;w()}busy=true;$('syncBtn').disabled=true;$('askBtn').disabled=true;$('steps').innerHTML='';const id=runId;
-  for(let k=0;k<syncMsgs.length;k++){if(id!==runId)return;const [m,c,a]=syncMsgs[k];await sleep(2400);light(c,a);add(m);if(k===0){grid(true);$('fval').textContent='Farmer ID'}}
-  synced=true;busy=false;$('status').textContent='Ready to ask';light();$('syncBtn').disabled=false;$('askBtn').disabled=false;
-  await tipT('askBtn','Now ask the state identity agency about these five farmers.',{wait:true});}
-async function run(){if(busy||!synced)return;if(waiter){const w=waiter;waiter=null;w()}busy=true;$('askBtn').disabled=true;$('syncBtn').disabled=true;$('steps').innerHTML='';const id=runId;
+let syncing=false,fast=false,askQueued=false,syncDone=null;
+async function sync(){if(busy)return;if(waiter){const w=waiter;waiter=null;w()}busy=true;syncing=true;fast=false;askQueued=false;$('syncBtn').disabled=true;$('askBtn').disabled=true;$('steps').innerHTML='';const id=runId;
+  let done;syncDone=new Promise(r=>done=r);
+  for(let k=0;k<syncMsgs.length;k++){if(id!==runId){syncing=false;done();return}const [m,c,a]=syncMsgs[k];await sleep(fast?120:2400);light(c,a);add(m);if(k===0){grid(true);$('fval').textContent='Farmer ID';$('askBtn').disabled=false}}
+  synced=true;busy=false;syncing=false;$('status').textContent='Ready to ask';light();$('syncBtn').disabled=false;$('askBtn').disabled=false;done();
+  if(!askQueued)await tipT('askBtn','Now ask the state identity agency about these five farmers.',{wait:true});}
+async function run(){if(syncing){askQueued=true;fast=true;$('askBtn').disabled=true;await syncDone;}if(busy||!synced)return;if(waiter){const w=waiter;waiter=null;w()}busy=true;$('askBtn').disabled=true;$('syncBtn').disabled=true;$('steps').innerHTML='';const id=runId;
   document.querySelectorAll('#rows .ans:not(.dv)').forEach(x=>{x.textContent='—';x.classList.remove('on')});
   const c=[...document.querySelectorAll('#rows .ans:not(.dv)')];
   for(let k=0;k<askMsgs.length;k++){if(id!==runId)return;const [m,ch,a]=askMsgs[k];await sleep(2400);light(ch,a);add(m);
@@ -183,7 +185,7 @@ async function run(){if(busy||!synced)return;if(waiter){const w=waiter;waiter=nu
       await tipT('hC','Yes = serve · No = already served · Refer = enrol first.',{above:true});}}
   busy=false;light();$('status').textContent='Done. No record left its agency.';
   $('tbl').classList.add('showD');await sleep(250);document.querySelectorAll('.dv').forEach(x=>x.classList.add('on'));
-  await tipT('hD','Answers can also be computed across agencies, privately.',{next:'Finish',above:true});
+  await tipT('hD','<span class="tag priv">MULTI-PARTY COMPUTATION</span><br>Is income over ₦50,000? Each agency splits its figure into random pieces; only the yes or no is rebuilt. No one sees the income.',{next:'Finish',above:true});
   $('askBtn').disabled=false;$('syncBtn').disabled=false;
   if(touring){touring=false;modal('<h2>Done. No records were shared.</h2>',[{t:'Replay',v:'again',ghost:true},{t:'Close',v:'close'}]).then(v=>{if(v==='again')restart()});}}
 async function welcome(){if(tourSkipped()){touring=false;return;}touring=true;
