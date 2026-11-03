@@ -1,0 +1,158 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Excel to verified answers</title>
+<style>
+:root{--xl:#217346;--xl-dark:#185C37;--ribbon:#F3F3F3;--rline:#D1D1D1;--hdr:#E6E6E6;--grid:#D4D4D4;--sheet:#fff;--ink:#242424;--slate:#605E5C;--sel:#E1F0E8;--teal:#2F7D74;--terra:#A3553F;--refer:#9A7B1F;--page:#E9EBED;--navy:#17375E;--panel:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ribbon:#2B2B2B;--rline:#444;--hdr:#333;--grid:#404040;--sheet:#1E1E1E;--ink:#EDEDED;--slate:#B0B0B0;--sel:#24382E;--teal:#4FB3A6;--terra:#E0846B;--refer:#D9B65F;--page:#141414;--panel:#252525}}
+:root[data-theme="dark"]{--ribbon:#2B2B2B;--rline:#444;--hdr:#333;--grid:#404040;--sheet:#1E1E1E;--ink:#EDEDED;--slate:#B0B0B0;--sel:#24382E;--teal:#4FB3A6;--terra:#E0846B;--refer:#D9B65F;--page:#141414;--panel:#252525}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Calibri,Arial,sans-serif}
+body{background:var(--page);color:var(--ink);padding:28px 4vw;max-width:1100px;margin:0 auto}
+.win{border:1px solid var(--rline);border-radius:8px;overflow:hidden;background:var(--sheet);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.title{background:var(--xl);color:#fff;display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:14px}
+.title .logo{background:#fff;color:var(--xl);font-weight:800;width:22px;height:22px;border-radius:4px;display:grid;place-items:center;font-size:14px}
+.tabs{background:var(--xl);display:flex;gap:2px;padding:0 10px;font-size:13px;color:#fff}
+.tabs span{padding:6px 14px;border-radius:6px 6px 0 0}
+.tabs .on{background:var(--ribbon);color:var(--xl-dark);font-weight:600}
+.ribbon{background:var(--ribbon);border-bottom:1px solid var(--rline);padding:10px 14px;display:flex;gap:6px;align-items:stretch;flex-wrap:wrap}
+.rb{background:transparent;border:1px solid transparent;border-radius:4px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;font-size:13px;min-width:96px}
+.rb .ic{font-size:26px;line-height:1}
+.rb:hover:not(:disabled){background:var(--sel);border-color:var(--xl)}
+.rb:disabled{opacity:.4;cursor:not-allowed}
+.rb.main .ic{color:var(--xl)}
+.sep{width:1px;background:var(--rline);margin:4px 8px}
+.fbar{display:flex;align-items:center;border-bottom:1px solid var(--rline);font-size:13px;background:var(--sheet)}
+.name{width:70px;padding:5px 10px;border-right:1px solid var(--rline);color:var(--slate)}
+.fx{padding:5px 12px;color:var(--slate);font-style:italic;border-right:1px solid var(--rline)}
+.fval{padding:5px 12px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px;table-layout:fixed}
+th,td{border:1px solid var(--grid);padding:5px 10px;height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+thead th{background:var(--hdr);color:var(--slate);font-weight:500;text-align:center;font-size:13px}
+tbody th{background:var(--hdr);color:var(--slate);font-weight:500;width:44px;text-align:center;font-size:13px}
+.hd td{font-weight:700;background:var(--sel)}
+.ans{font-weight:700;opacity:0;transition:opacity .4s}.ans.on{opacity:1}
+.yes{color:var(--teal)}.no{color:var(--terra)}.refer{color:var(--refer)}
+.sheets{display:flex;align-items:center;background:var(--ribbon);border-top:1px solid var(--rline);font-size:13px}
+.sheets .tab{background:var(--sheet);color:var(--xl-dark);font-weight:700;padding:6px 18px;border-top:2px solid var(--xl);border-right:1px solid var(--rline)}
+.sheets .plus{padding:6px 12px;color:var(--slate)}
+.statusbar{background:var(--xl);color:#fff;font-size:12.5px;padding:4px 14px;display:flex;justify-content:space-between;gap:10px}
+.steps{margin-top:16px;background:var(--panel);border:1px solid var(--rline);border-left:4px solid var(--xl);border-radius:6px;padding:12px 18px;font-size:15px;line-height:1.75;color:var(--slate)}
+.steps:empty{display:none}
+.steps div{animation:in .3s}
+.steps b{color:var(--xl-dark)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .steps b{color:#6FD1A6}}
+:root[data-theme="dark"] .steps b{color:#6FD1A6}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.tabs span{cursor:default}.tabs span[data-t]{cursor:pointer}
+.tabs .net{color:#FFE9A8;font-weight:600}
+.tabs .net.on{color:var(--xl-dark)}
+.ribbon{gap:0;padding:6px 8px 0;align-items:flex-start}
+.grp{display:flex;flex-direction:column;border-right:1px solid var(--rline);padding:0 8px;height:92px;justify-content:space-between}
+.grp:last-child{border-right:0}
+.gb{display:flex;gap:4px;align-items:flex-start;flex:1;padding-top:2px}
+.gl{font-size:11px;color:var(--slate);text-align:center;padding:2px 0}
+.col{display:flex;flex-direction:column;gap:2px}
+.mini{font-size:12px;padding:2px 6px;color:var(--ink);white-space:nowrap}
+.mini.box{border:1px solid var(--rline);background:var(--sheet);min-width:92px}
+.rb.s{min-width:60px;padding:4px 8px;font-size:12px;text-align:center;cursor:default}
+.rb.s .ic{font-size:22px}
+.rb.s:hover{background:transparent;border-color:transparent}
+.rb{font-size:12px}
+.prep{background:var(--navy);color:#fff;border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:16px;box-shadow:0 4px 14px rgba(23,55,94,.15)}
+.plogo{font-weight:800;font-size:18px;letter-spacing:.02em}
+.pbtns{display:flex;gap:10px;flex-wrap:wrap}
+.pb{background:#fff;color:var(--navy);border:0;border-radius:7px;padding:10px 20px;font-size:15px;font-weight:700;cursor:pointer}
+.pb.ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.6)}
+.pb:disabled{opacity:.45;cursor:not-allowed}
+</style></head>
+<body>
+<div class="win">
+  <div class="title"><span class="logo">X</span><span>kada_farmers.xlsx — Excel</span></div>
+  <div class="tabs"><span>File</span><span>Home</span><span>Insert</span><span>Data</span><span>View</span><span class="on">1864 Open Network</span></div>
+  <div class="ribbon">
+    <div class="grp"><div class="gb">
+      <button class="rb main" id="syncBtn" onclick="sync()"><span class="ic">&#128257;</span>Sync to network<br>(from Prep)</button>
+      <button class="rb main" id="askBtn" onclick="run()" disabled><span class="ic">&#128269;</span>Ask the network</button>
+      <button class="rb" onclick="reset()"><span class="ic">&#8634;</span>Reset</button>
+    </div><div class="gl">1864 Open Network</div></div>
+  </div>
+  <div class="fbar"><div class="name" id="nameBox">A1</div><div class="fx">fx</div><div class="fval" id="fval"></div></div>
+  <div class="scroll"><table>
+    <thead><tr><th style="width:44px"></th><th>A</th><th>B</th><th>C</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+  <div class="sheets"><span class="tab">Sheet1</span><span class="plus">&#43;</span></div>
+  <div class="statusbar"><span id="status"></span><span>100%</span></div>
+</div>
+<div class="steps" id="steps"></div>
+<script>
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=id=>document.getElementById(id);
+const data=[['0071','Musa Abubakar','Yes, serve','yes'],['1182','Sadiya Bello','No, already served','no'],['0345','Amina Sani','Yes, serve','yes'],['0990','Ibrahim Yusuf','Refer to enrol','refer'],['0512','Grace Audu','Yes, serve','yes']];
+let busy=false,synced=false;
+function grid(filled){
+  let h='';
+  for(let r=1;r<=10;r++){
+    let a='',b='',c='',cls='';
+    if(filled){
+      if(r===1){a='ID';b='Name';c='Answer';cls=' class="hd"'}
+      else if(r<=6){const d=data[r-2];a=d[0];b=d[1];c='<span class="ans '+d[3]+'">—</span>'}
+    }
+    h+='<tr'+cls+'><th>'+r+'</th><td>'+a+'</td><td>'+b+'</td><td>'+c+'</td></tr>';
+  }
+  $('rows').innerHTML=h;
+}
+const syncMsgs=[
+ '<b>1864 Prep:</b> opening the cleaned file, kada_farmers.xlsx',
+ '<b>Standardised:</b> IDs kept intact, for example 0071',
+ '<b>Approved:</b> staff have signed off every change, all logged',
+ '<b>Pick what to share:</b> the agency ticks Farmer ID',
+ '<b>Kept private:</b> Name stays on this computer',
+ '<b>Prepared:</b> standardised values only, no raw records',
+ '<b>Catalogue built:</b> “registered resident, not yet served?”',
+ '<b>Connector set:</b> reads the file in place, never changes it',
+ '<b>DeDi registry:</b> the agency’s public key is published',
+ '<b>Sync complete:</b> the adapter is ready to serve answers, the record stays put'
+];
+const askMsgs=[
+ '<b>Officer asks once:</b> 5 IDs sent as one question',
+ '<b>Signing</b> the request with the agency’s own key (ed25519 over BLAKE-512)',
+ '<b>Router (Caddy)</b> at KADRIMA receives the question',
+ '<b>DeDi lookup</b> successful: sender key found',
+ '<b>Adapter (ONIX)</b> verifies the signature: OK',
+ '<b>Cache (Redis)</b> holds the message while it is in transit',
+ '<b>Connector</b> reads KADRIMA’s data in place and decides each answer',
+ '<b>Adapter</b> signs the answers with KADRIMA’s own key',
+ '<b>Signed answer</b> returned: only yes, no or refer, never the record',
+ '<b>Logged:</b> the exchange is recorded in the audit trail'
+];
+const add=t=>{const d=document.createElement('div');d.innerHTML=t;$('steps').appendChild(d)};
+async function sync(){
+  if(busy)return;busy=true;$('syncBtn').disabled=true;$('askBtn').disabled=true;
+  $('steps').innerHTML='';
+  for(let k=0;k<syncMsgs.length;k++){
+    await sleep(600);add(syncMsgs[k]);
+    if(k===0){grid(true);$('fval').textContent='ID'}
+  }
+  synced=true;$('status').textContent='Sync complete. Data loaded from Prep.';
+  $('syncBtn').disabled=false;$('askBtn').disabled=false;busy=false;
+}
+async function run(){
+  if(busy||!synced)return;busy=true;$('askBtn').disabled=true;$('syncBtn').disabled=true;
+  document.querySelectorAll('#rows .ans').forEach(x=>{x.textContent='—';x.classList.remove('on')});
+  $('steps').innerHTML='';
+  const c=document.querySelectorAll('#rows .ans');
+  for(let k=0;k<askMsgs.length;k++){
+    await sleep(600);add(askMsgs[k]);
+    if(k===6){for(let i=0;i<c.length;i++){await sleep(350);c[i].textContent=data[i][2];c[i].classList.add('on')}}
+  }
+  $('status').textContent='Done. No record left its agency.';
+  $('askBtn').disabled=false;$('syncBtn').disabled=false;busy=false;
+}
+function reset(){
+  if(busy)return;synced=false;grid(false);$('steps').innerHTML='';$('fval').textContent='';
+  $('askBtn').disabled=true;$('status').textContent='';
+}
+grid(false);</script>
+</body></html>
