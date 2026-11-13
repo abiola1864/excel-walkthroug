@@ -86,9 +86,32 @@ tbody th{background:var(--hdr);color:var(--slate);font-weight:500;width:44px;tex
 .modal button.ghost{background:transparent;color:var(--slate);border:1px solid var(--rline)}
 @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (max-width:760px){.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);height:28px}}
+.win{position:relative}
+.behind{position:absolute;right:12px;top:118px;width:330px;max-height:calc(100% - 150px);overflow:auto;background:var(--panel);border:1px solid var(--rline);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:10px 12px;z-index:6;transition:opacity .3s,transform .3s}
+.behind.hide{opacity:0;transform:translateX(30px);pointer-events:none}
+.bhead{display:flex;justify-content:space-between;align-items:center}
+.btag{font-size:11px;font-weight:800;letter-spacing:.08em;background:var(--gold);color:#1F2326;border-radius:10px;padding:3px 9px}
+.bx{border:0;background:transparent;color:var(--slate);font-size:20px;cursor:pointer;line-height:1}
+.btxt{font-size:13px;color:var(--slate);margin:6px 0 6px}
+.behind .bar{height:5px;background:var(--chip);border-radius:3px;overflow:hidden;margin-bottom:8px}.behind .bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s linear}
+.behind .flow{grid-template-columns:1fr;margin:0}
+.behind .arrow{transform:rotate(90deg);height:18px;font-size:18px}
+.behind .grp{padding:7px 9px}.behind .gt{font-size:10.5px;margin-bottom:5px}.behind .chip{font-size:12px;padding:4px 7px}.behind .chip small{font-size:10.5px}
+.behind .steps{margin-top:8px;font-size:12px;line-height:1.5;padding:8px 10px}
+@media (max-width:760px){.behind{position:static;width:auto;max-height:none;margin:8px;box-shadow:none}.behind.hide{display:none}}
 </style></head>
 <body>
-<div class="flow">
+<div class="win" id="win">
+  <div class="title"><span class="logo">X</span><span>kada_farmers.xlsx — Excel</span></div>
+  <div class="tabs"><span>File</span><span>Home</span><span>Insert</span><span>Data</span><span class="on">1864 Open Network</span></div>
+  <div class="ribbon">
+    <button class="rb" id="syncBtn" onclick="sync()"><span class="ic">&#128257;</span>Sync to network</button>
+    <button class="rb" id="askBtn" onclick="run()" disabled><span class="ic">&#128269;</span>Ask the network</button>
+    <button class="rb" id="tourBtn" onclick="restart()"><span class="ic">&#8634;</span>Start again</button>
+    <button class="rb" id="bsBtn" onclick="togglePanel()"><span class="ic">&#128065;</span>Behind the scenes</button>
+    <span class="gl">1864 Open Network add-in</span>
+  </div>
+<div class="behind hide" id="behind"><div class="bhead"><span class="btag">BEHIND THE SCENES</span><button class="bx" onclick="togglePanel(false)" aria-label="Close">×</button></div><div class="btxt" id="bsTxt">Nothing running.</div><div class="bar"><i id="bsBar"></i></div><div class="flow">
   <div class="grp" id="g-a"><div class="gt">Asking agency · Agriculture (KADA)</div><div class="chips">
     <div class="chip" id="c-prep">1864 Prep<small>cleans the file, on this computer</small></div>
     <div class="chip" id="c-excel">Officer’s Excel<small>the list of IDs</small></div>
@@ -104,32 +127,27 @@ tbody th{background:var(--hdr);color:var(--slate);font-weight:500;width:44px;tex
     <div class="chip" id="c-conn">Connector<small>reads the register</small></div>
     <div class="chip" id="c-reg">KADRIMA register<small>never leaves</small></div></div></div>
 </div>
-<div class="win" id="win">
-  <div class="title"><span class="logo">X</span><span>kada_farmers.xlsx — Excel</span></div>
-  <div class="tabs"><span>File</span><span>Home</span><span>Insert</span><span>Data</span><span class="on">1864 Open Network</span></div>
-  <div class="ribbon">
-    <button class="rb" id="syncBtn" onclick="sync()"><span class="ic">&#128257;</span>Sync to network</button>
-    <button class="rb" id="askBtn" onclick="run()" disabled><span class="ic">&#128269;</span>Ask the network</button>
-    <button class="rb" id="tourBtn" onclick="restart()"><span class="ic">&#8634;</span>Start again</button>
-    <span class="gl">1864 Open Network add-in</span>
-  </div>
+<div class="steps" id="steps"></div></div>
   <div class="fbar"><div class="name">A1</div><div class="fx">fx</div><div class="fval" id="fval"></div></div>
   <div class="scroll"><table id="tbl">
     <thead><tr><th style="width:44px"></th><th>A</th><th>B</th><th>C</th><th class="colD">D</th></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
   <div class="sheets"><span class="tab">Sheet1</span></div>
-  <div class="statusbar"><span id="status">Ready</span><span>100%</span></div>
+  <div class="statusbar"><span id="status">Ready. Click Sync to network.</span><span>100%</span></div>
 </div>
-<div class="steps" id="steps"></div>
+
 
 
 <script>
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let manual=false;function togglePanel(v){const p=$('behind');const show=v===undefined?p.classList.contains('hide'):v;p.classList.toggle('hide',!show);if(v===undefined)manual=show;}
+function setBs(mode,txt){const plain=txt.replace(/<[^>]+>/g,'');if(mode==='run'||mode==='pause'){togglePanel(true);$('bsTxt').innerHTML=txt;$('status').textContent='Working behind the scenes…';}else{$('status').textContent=plain;if(mode!=='run')$('bsBar').style.width=mode==='done'?'100%':'0';if(!manual)setTimeout(()=>{if(!busy&&!manual)togglePanel(false)},900);}}
+async function wait(ms,k,n,label){const t0=Date.now();while(true){const el=Date.now()-t0;if(el>=ms)break;const left=Math.ceil((ms-el)/1000);setBs('run',label+' · step '+k+' of '+n+' · next in '+left+'s');$('bsBar').style.width=Math.round(((k-1)+el/ms)/n*100)+'%';await sleep(Math.min(200,ms-el));}}
 const $=id=>document.getElementById(id);
 const data=[['0071','Musa Abubakar','Yes, serve','yes','No'],['1182','Sadiya Bello','No, already served','no','Yes'],['0345','Amina Sani','Yes, serve','yes','No'],['0990','Ibrahim Yusuf','Refer to enrol','refer','No'],['0512','Grace Audu','Yes, serve','yes','No']];
 let busy=false,synced=false,runId=0;
-function grid(filled){let h='';for(let r=1;r<=8;r++){let a='',b='',c='',d='',cls='';
+function grid(filled){let h='';for(let r=1;r<=15;r++){let a='',b='',c='',d='',cls='';
   if(filled){if(r===1){a='Farmer ID';b='Name';c='Answer';d='Earns over ₦50,000?';cls=' class="hd"'}else if(r<=6){const x=data[r-2];a=x[0];b=x[1];c='<span class="ans '+x[3]+'">—</span>';d='<span class="ans num dv">'+x[4]+'</span>'}}
   h+='<tr'+cls+'><th>'+r+'</th><td id="'+(r===1?'hA':'')+'">'+a+'</td><td id="'+(r===1?'hB':'')+'">'+b+'</td><td id="'+(r===1?'hC':'')+'">'+c+'</td><td class="colD" id="'+(r===1?'hD':'')+'">'+d+'</td></tr>';}
   $('rows').innerHTML=h;}
@@ -160,30 +178,30 @@ function skipTour(){touring=false;waiter=null;try{sessionStorage.setItem(SKIP_KE
 function modal(html,buttons){return new Promise(res=>{const bg=document.createElement('div');bg.className='modalbg';
   bg.innerHTML='<div class="modal">'+html+'<div class="row">'+buttons.map((b,i)=>'<button class="'+(b.ghost?'ghost':'')+'" data-i="'+i+'">'+b.t+'</button>').join('')+'</div></div>';
   document.body.appendChild(bg);bg.querySelectorAll('button').forEach(b=>b.onclick=()=>{bg.remove();res(buttons[+b.dataset.i].v)});});}
-async function tipT(target,html,opt={}){if(!touring)return 'off';return place(target,html,opt);}
+async function tipT(target,html,opt={}){if(!touring)return 'off';if(busy)setBs('pause','Read the note, then click <b>Next</b> to continue.');return place(target,html,opt);}
 /* ---------- demo ---------- */
 function light(chip,arrow){document.querySelectorAll('.chip,.grp,.arrow').forEach(e=>e.classList.remove('on'));
   if(chip){const c=$('c-'+chip);c.classList.add('on');c.closest('.grp').classList.add('on');}
   if(arrow){const a=$('ar'+Math.abs(arrow));a.classList.add('on');a.innerHTML=arrow>0?'&#10230;':'&#10229;';}}
 function say(n,t){}
-const add=t=>{const d=document.createElement('div');d.innerHTML=t;$('steps').appendChild(d);d.scrollIntoView({block:'nearest',behavior:'smooth'})};
+const add=t=>{const st=$('steps');const d=document.createElement('div');d.innerHTML=t;st.appendChild(d);while(st.children.length>2)st.removeChild(st.firstChild);};
 const syncMsgs=[['<b>1864 Prep</b> opens KADA’s cleaned farmer file, on KADA’s own computer','prep'],['<b>Standardised:</b> IDs kept exactly, for example 0071, never 71','prep'],['<b>Approved:</b> staff signed off every change, and every change is logged','prep'],['<b>Choose what to share:</b> the Farmer ID column is ticked','excel'],['<b>Kept private:</b> the Name column stays on this computer','excel'],['<b>Agreed question set:</b> “Is this a registered resident who has not yet been served this season?”','adA'],['<b>DeDi:</b> KADA’s public key is published, so others can check its stamp','dedi',1],['<b>Ready:</b> the adapter can now send and receive, and the records stay put','adA']];
 const askMsgs=[['<b>The officer asks once:</b> 5 Farmer IDs, one agreed question','excel'],['<b>Stamped:</b> KADA’s adapter signs the request with KADA’s private key','adA'],['<b>Sent:</b> the router at KADRIMA receives the question','router',2],['<b>DeDi lookup:</b> KADRIMA finds KADA’s public key','dedi'],['<b>Stamp verified:</b> it really came from KADA and was not changed','adB'],['<b>In transit:</b> the cache holds the message briefly','cache'],['<b>Register read in place:</b> each ID is checked against KADRIMA’s register','conn'],['<b>Answers stamped:</b> KADRIMA signs each answer with its own key','adB'],['<b>Answers returned:</b> only the agreed answer travels, never the record','excel',-1],['<b>Logged:</b> both agencies keep a record of the exchange','excel']];
 let syncing=false,fast=false,askQueued=false,syncDone=null;
 async function sync(){if(busy)return;if(waiter){const w=waiter;waiter=null;w()}busy=true;syncing=true;fast=false;askQueued=false;$('syncBtn').disabled=true;$('askBtn').disabled=true;$('steps').innerHTML='';const id=runId;
   let done;syncDone=new Promise(r=>done=r);
-  for(let k=0;k<syncMsgs.length;k++){if(id!==runId){syncing=false;done();return}const [m,c,a]=syncMsgs[k];await sleep(fast?120:2400);light(c,a);add(m);if(k===0){grid(true);$('fval').textContent='Farmer ID';$('askBtn').disabled=false}}
-  synced=true;busy=false;syncing=false;$('status').textContent='Ready to ask';light();$('syncBtn').disabled=false;$('askBtn').disabled=false;done();
+  for(let k=0;k<syncMsgs.length;k++){if(id!==runId){syncing=false;done();return}const [m,c,a]=syncMsgs[k];if(fast)await sleep(120);else await wait(2400,k+1,syncMsgs.length,'Getting the file ready');light(c,a);add(m);if(k===0){grid(true);$('fval').textContent='Farmer ID';$('askBtn').disabled=false}}
+  synced=true;busy=false;syncing=false;$('status').textContent='Ready to ask';setBs('you','Ready. Click Ask the network.');light();$('syncBtn').disabled=false;$('askBtn').disabled=false;done();
   if(!askQueued)await tipT('askBtn','Now ask the state identity agency about these five farmers.',{wait:true});}
 async function run(){if(syncing){askQueued=true;fast=true;$('askBtn').disabled=true;await syncDone;}if(busy||!synced)return;if(waiter){const w=waiter;waiter=null;w()}busy=true;$('askBtn').disabled=true;$('syncBtn').disabled=true;$('steps').innerHTML='';const id=runId;
   document.querySelectorAll('#rows .ans:not(.dv)').forEach(x=>{x.textContent='—';x.classList.remove('on')});
   const c=[...document.querySelectorAll('#rows .ans:not(.dv)')];
-  for(let k=0;k<askMsgs.length;k++){if(id!==runId)return;const [m,ch,a]=askMsgs[k];await sleep(2400);light(ch,a);add(m);
+  for(let k=0;k<askMsgs.length;k++){if(id!==runId)return;const [m,ch,a]=askMsgs[k];await wait(2400,k+1,askMsgs.length,'The question travels');light(ch,a);add(m);
     if(k===1)await tipT('c-adA','<span class="tag sec">SECURITY</span><br>Every message is digitally stamped and checked on DeDi, so it can’t be faked.',{});
     if(k===6)await tipT('c-reg','<span class="tag priv">PRIVACY</span><br>The register never leaves. Only answers travel.',{});
-    if(k===8){for(let i=0;i<c.length;i++){await sleep(450);c[i].textContent=data[i][2];c[i].classList.add('on')}
+    if(k===8){if(!manual)togglePanel(false);for(let i=0;i<c.length;i++){await sleep(450);c[i].textContent=data[i][2];c[i].classList.add('on')}
       await tipT('hC','Yes = serve · No = already served · Refer = enrol first.',{above:true});}}
-  busy=false;light();$('status').textContent='Done. No record left its agency.';
+  busy=false;light();$('status').textContent='Done. No record left its agency.';setBs('done','Done. No record left either agency.');
   $('tbl').classList.add('showD');await sleep(250);document.querySelectorAll('.dv').forEach(x=>x.classList.add('on'));
   await tipT('hD','<span class="tag priv">MULTI-PARTY COMPUTATION</span><br>Is income over ₦50,000? Each agency splits its figure into random pieces; only the yes or no is rebuilt. No one sees the income.',{next:'Finish',above:true});
   $('askBtn').disabled=false;$('syncBtn').disabled=false;
@@ -192,7 +210,7 @@ async function welcome(){if(tourSkipped()){touring=false;return;}touring=true;
   const v=await modal('<h2>Agencies share answers, not files.</h2><p>Here, an officer asks from Excel, using a one-time add-in (<b>Insert → Add-ins</b>). She could ask just as well from her agency’s own system.</p><p>Under two minutes.</p>',[{t:'Skip tour',v:'skip',ghost:true},{t:'Start',v:'go'}]);
   if(v==='skip'){skipTour();return;}
   await tipT('syncBtn','Start here: get the agriculture agency’s cleaned file ready.',{wait:true});}
-function restart(){runId++;busy=false;synced=false;clearTour();waiter=null;$('tbl').classList.remove('showD');grid(false);$('steps').innerHTML='';$('fval').textContent='';$('askBtn').disabled=true;$('syncBtn').disabled=false;$('status').textContent='Ready';light();welcome();}
+function restart(){runId++;busy=false;synced=false;clearTour();waiter=null;$('tbl').classList.remove('showD');grid(false);$('steps').innerHTML='';$('fval').textContent='';$('askBtn').disabled=true;$('syncBtn').disabled=false;$('status').textContent='Ready';light();setBs('you','Ready. Click Sync to network.');welcome();}
 addEventListener('resize',()=>{if(spot)clearTour()});
 grid(false);welcome();
 </script>
